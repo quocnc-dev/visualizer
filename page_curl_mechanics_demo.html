@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bóc Tách Cơ Chế Lật Trang (Turn.js Logic Demo)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .font-mono-code {
+        font-family: "JetBrains Mono", monospace;
+      }
+      /* Hiệu ứng bóng bề mặt trang sách */
+      .book-shadow {
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.25),
+          0 0 0 1px rgba(0, 0, 0, 0.05);
+      }
+      .spine-gradient {
+        background: linear-gradient(
+          to right,
+          rgba(0, 0, 0, 0.18) 0%,
+          rgba(0, 0, 0, 0.02) 20%,
+          rgba(255, 255, 255, 0.15) 30%,
+          rgba(0, 0, 0, 0.05) 100%
+        );
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-between p-4 md:p-8"
+  >
+    <!-- Header Header & Controls -->
+    <header class="w-full max-w-5xl text-center space-y-2 mb-4">
+      <div
+        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold tracking-wide uppercase"
+      >
+        Trực quan hóa thuật toán
+      </div>
+      <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white">
+        Nguyên Lý Lật Trang Kiểu Turn.js
+      </h1>
+      <p class="text-slate-400 text-sm max-w-2xl mx-auto">
+        Kéo góc sách màu đỏ bên dưới hoặc bật
+        <span class="text-amber-400 font-medium">Chế độ X-Ray</span> để thấy
+        trục đối xứng hình học và vùng cắt
+        <code
+          class="font-mono-code text-xs bg-slate-800 px-1 py-0.5 rounded text-indigo-300"
+          >clip-path</code
+        >.
+      </p>
+    </header>
+
+    <main
+      class="w-full max-w-5xl flex flex-col lg:flex-row items-center justify-center gap-8 my-auto"
+    >
+      <!-- Khung mô phỏng quyển sách (Book Container) -->
+      <div class="relative flex items-center justify-center">
+        <!-- Quyển sách mở 2 trang (Spread) -->
+        <div
+          id="bookSpread"
+          class="relative w-[340px] h-[440px] sm:w-[560px] sm:h-[390px] md:w-[680px] md:h-[460px] bg-amber-50 rounded-r-xl rounded-l-md book-shadow overflow-hidden flex"
+        >
+          <!-- TRANG TRÁI (Trang tĩnh) -->
+          <div
+            class="hidden sm:block w-1/2 h-full bg-[#fdfaf3] border-r border-amber-200/70 p-6 sm:p-8 relative select-none"
+          >
+            <div
+              class="h-full flex flex-col justify-between text-stone-800 border border-amber-200/50 p-6 rounded bg-stone-50/50"
+            >
+              <div>
+                <span
+                  class="text-xs uppercase tracking-widest text-amber-800/60 font-bold"
+                  >Chương 01</span
+                >
+                <h2 class="text-xl font-bold mt-1 text-stone-900">
+                  Bản chất của hiệu ứng
+                </h2>
+                <p
+                  class="text-xs sm:text-sm text-stone-600 mt-4 leading-relaxed"
+                >
+                  Khi lật một góc trang sách, tờ giấy không hề biến dạng tự do.
+                  Nó uốn quanh <strong>đường trung trực</strong> của đoạn thẳng
+                  nối từ góc ban đầu đến điểm bạn kéo đến.
+                </p>
+              </div>
+              <div class="text-xs text-stone-400 italic">
+                Trang 1 • Bản demo logic thuần
+              </div>
+            </div>
+            <!-- Gáy sách giả lập -->
+            <div
+              class="absolute top-0 right-0 w-8 h-full spine-gradient pointer-events-none"
+            ></div>
+          </div>
+
+          <!-- TRANG PHẢI (Vùng lật trang tương tác) -->
+          <div
+            id="rightPageContainer"
+            class="w-full sm:w-1/2 h-full relative overflow-hidden bg-amber-100 select-none"
+          >
+            <!-- Lớp 0: TRANG DƯỚI (Under Page - Hiện ra khi trang trên bị lật đi) -->
+            <div
+              class="absolute inset-0 bg-[#faf6ec] p-6 sm:p-8 flex flex-col justify-between text-stone-700"
+            >
+              <div
+                class="border border-emerald-300/40 bg-emerald-500/5 p-5 rounded"
+              >
+                <span
+                  class="text-xs font-bold uppercase tracking-wider text-emerald-700"
+                  >Trang kế tiếp (Next Page)</span
+                >
+                <h3 class="text-lg font-bold text-stone-900 mt-1">
+                  Trang 3 lộ diện!
+                </h3>
+                <p
+                  class="text-xs sm:text-sm text-stone-600 mt-3 leading-relaxed"
+                >
+                  Trang này vốn dĩ luôn nằm bên dưới. Nhờ lớp phủ phía trên bị
+                  cắt (<code class="font-mono text-emerald-800">clip-path</code
+                  >), phần giấy bên dưới tự động lộ ra đúng vị trí.
+                </p>
+              </div>
+              <div class="text-xs text-stone-400 italic text-right">
+                Trang 3
+              </div>
+            </div>
+
+            <!-- Lớp 1: TRANG HIỆN TẠI (Đang bị cắt tỉa theo nếp gấp) -->
+            <div
+              id="frontPage"
+              class="absolute inset-0 bg-[#fffdf8] p-6 sm:p-8 flex flex-col justify-between text-stone-800 shadow-md"
+            >
+              <div>
+                <span
+                  class="text-xs uppercase tracking-widest text-amber-800/60 font-bold"
+                  >Chương 02</span
+                >
+                <h2 class="text-xl font-bold mt-1 text-stone-900">
+                  Trục Gập Đối Xứng
+                </h2>
+                <p
+                  class="text-xs sm:text-sm text-stone-600 mt-4 leading-relaxed"
+                >
+                  Điểm đỏ ở góc dưới chính là điểm chuột nắm. Đoạn nếp gập (màu
+                  xanh lá) là trục đối xứng phản xạ lại góc giấy ban đầu.
+                </p>
+                <div
+                  class="mt-4 p-3 bg-amber-500/10 rounded border border-amber-500/20 text-xs text-amber-900"
+                >
+                  💡 <strong>Thao tác:</strong> Bấm và rê con trỏ chuột vào góc
+                  dưới bên phải để kéo lật trang.
+                </div>
+              </div>
+              <div class="text-xs text-stone-400 italic text-right">
+                Trang 2
+              </div>
+            </div>
+
+            <!-- Lớp 2: GÓC GIẤY BỊ LẬT LÊN (Backface Peel Polygon) -->
+            <div id="peelLayer" class="absolute inset-0 pointer-events-none">
+              <!-- Mặt sau của góc giấy -->
+              <div
+                id="backFace"
+                class="absolute inset-0 bg-stone-200 border-l border-amber-300/40"
+              >
+                <!-- Lớp bóng chuyển sắc mô phỏng độ cong giấy -->
+                <div id="foldShadow" class="absolute inset-0"></div>
+              </div>
+            </div>
+
+            <!-- Lớp 3: Bóng rơi xuống trang bên dưới (Drop shadow của nếp gấp) -->
+            <div
+              id="underShadow"
+              class="absolute inset-0 pointer-events-none"
+            ></div>
+
+            <!-- Lớp 4: LỚP HÌNH HỌC X-RAY (Vẽ đường toán học) -->
+            <svg
+              id="debugSvg"
+              class="absolute inset-0 w-full h-full pointer-events-none z-30 transition-opacity duration-300 opacity-0"
+            >
+              <!-- Đường nối góc cũ và điểm kéo -->
+              <line
+                id="svgLineCP"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="0"
+                stroke="#f43f5e"
+                stroke-width="2"
+                stroke-dasharray="4,4"
+              />
+              <!-- Đường nếp gấp (Fold Axis) -->
+              <line
+                id="svgLineFold"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="0"
+                stroke="#10b981"
+                stroke-width="3"
+              />
+              <!-- Trung điểm M -->
+              <circle id="svgPointM" cx="0" cy="0" r="5" fill="#3b82f6" />
+              <!-- Điểm cắt mép dưới & mép phải -->
+              <circle id="svgPointB" cx="0" cy="0" r="5" fill="#10b981" />
+              <circle id="svgPointR" cx="0" cy="0" r="5" fill="#10b981" />
+            </svg>
+
+            <!-- Điểm Handle kéo tương tác (Draggable Handle) -->
+            <div
+              id="dragHandle"
+              class="absolute w-8 h-8 -ml-4 -mt-4 bg-rose-500 rounded-full border-2 border-white shadow-xl cursor-grab active:cursor-grabbing z-40 flex items-center justify-center"
+            >
+              <span class="w-2 h-2 rounded-full bg-white"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full lg:w-80 flex flex-col gap-4">
+        <!-- Bảng điều khiển tương tác -->
+        <div
+          class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-lg backdrop-blur"
+        >
+          <h3
+            class="text-sm font-semibold text-white uppercase tracking-wider mb-4 flex items-center gap-2"
+          >
+            <svg
+              class="w-4 h-4 text-indigo-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+              ></path>
+            </svg>
+            Điều Khiển
+          </h3>
+
+          <!-- Nút bật tắt chế độ X-Ray -->
+          <label
+            class="flex items-center justify-between p-3 rounded-lg bg-slate-900/60 border border-slate-700/40 cursor-pointer hover:border-slate-600 transition"
+          >
+            <span class="text-xs font-medium text-slate-300"
+              >Bật X-Ray Toán Học</span
+            >
+            <input
+              type="checkbox"
+              id="toggleXray"
+              class="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+              checked
+            />
+          </label>
+
+          <!-- Presets Buttons -->
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <button
+              id="btnReset"
+              class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              Đóng trang lại
+            </button>
+            <button
+              id="btnFlipHalf"
+              class="px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition"
+            >
+              Lật góc 45°
+            </button>
+          </div>
+
+          <button
+            id="btnAutoFlip"
+            class="w-full mt-2 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center justify-center gap-2"
+          >
+            <span>Tự động lướt qua lại</span>
+          </button>
+        </div>
+
+        <!-- Màn hình theo dõi thông số thời gian thực -->
+        <div
+          class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-lg backdrop-blur"
+        >
+          <h3
+            class="text-sm font-semibold text-white uppercase tracking-wider mb-3 flex items-center gap-2"
+          >
+            <svg
+              class="w-4 h-4 text-emerald-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              ></path>
+            </svg>
+            Tọa Độ & Góc Tính Toán
+          </h3>
+
+          <div class="space-y-2 text-xs font-mono-code">
+            <div class="flex justify-between py-1 border-b border-slate-700/50">
+              <span class="text-slate-400">Góc ban đầu C:</span>
+              <span id="statCorner" class="text-rose-400 font-semibold"
+                >(0, 0)</span
+              >
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-700/50">
+              <span class="text-slate-400">Con trỏ kéo P:</span>
+              <span id="statPointer" class="text-amber-400 font-semibold"
+                >(0, 0)</span
+              >
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-700/50">
+              <span class="text-slate-400">Trung điểm M:</span>
+              <span id="statMidpoint" class="text-blue-400 font-semibold"
+                >(0, 0)</span
+              >
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-700/50">
+              <span class="text-slate-400">Góc nếp gấp θ:</span>
+              <span id="statAngle" class="text-emerald-400 font-semibold"
+                >0.0°</span
+              >
+            </div>
+          </div>
+
+          <div
+            class="mt-4 p-3 rounded bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 leading-relaxed"
+          >
+            <span class="text-emerald-400 font-semibold block mb-1"
+              >Công thức cốt lõi:</span
+            >
+            Trung trực của CP:
+            <code class="text-slate-300">M = (P + C) / 2</code><br />
+            Góc xoay: <code class="text-slate-300">θ = atan2(Δy, Δx)</code>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer Footer info -->
+    <footer class="text-xs text-slate-500 text-center py-2">
+      Thuật toán mô phỏng hình học phẳng của Turn.js với CSS
+      <code class="text-indigo-400">clip-path: polygon()</code>
+    </footer>
+
+    <script>
+      // Tham chiếu các phần tử DOM
+      const container = document.getElementById("rightPageContainer");
+      const frontPage = document.getElementById("frontPage");
+      const peelLayer = document.getElementById("peelLayer");
+      const backFace = document.getElementById("backFace");
+      const foldShadow = document.getElementById("foldShadow");
+      const underShadow = document.getElementById("underShadow");
+      const dragHandle = document.getElementById("dragHandle");
+
+      // SVG Debug Elements
+      const debugSvg = document.getElementById("debugSvg");
+      const svgLineCP = document.getElementById("svgLineCP");
+      const svgLineFold = document.getElementById("svgLineFold");
+      const svgPointM = document.getElementById("svgPointM");
+      const svgPointB = document.getElementById("svgPointB");
+      const svgPointR = document.getElementById("svgPointR");
+
+      // UI Stats
+      const statCorner = document.getElementById("statCorner");
+      const statPointer = document.getElementById("statPointer");
+      const statMidpoint = document.getElementById("statMidpoint");
+      const statAngle = document.getElementById("statAngle");
+      const toggleXray = document.getElementById("toggleXray");
+
+      // Trạng thái biến
+      let width = 0;
+      let height = 0;
+      let isDragging = false;
+      let animId = null;
+
+      // Vị trí con trỏ kéo P
+      let curX = 0;
+      let curY = 0;
+
+      function updateDimensions() {
+        const rect = container.getBoundingClientRect();
+        width = rect.width;
+        height = rect.height;
+      }
+
+      // Toggle X-Ray
+      function updateXray() {
+        if (toggleXray.checked) {
+          debugSvg.classList.remove("opacity-0");
+          debugSvg.classList.add("opacity-100");
+        } else {
+          debugSvg.classList.remove("opacity-100");
+          debugSvg.classList.add("opacity-0");
+        }
+      }
+      toggleXray.addEventListener("change", updateXray);
+
+      /**
+       * Tính toán hình học lật trang:
+       * C: Góc ban đầu (W, H)
+       * P: Vị trí góc kéo (px, py)
+       * M: Trung điểm đoạn CP
+       * Đường nếp gấp: Đường trung trực vuông góc với CP qua M.
+       */
+      function computeCurl(px, py) {
+        // 1. Ràng buộc không cho kéo vượt quá chiều dài cạnh trang sách (Inelasticity)
+        const C = { x: width, y: height };
+        let dx = px - C.x;
+        let dy = py - C.y;
+
+        // Giới hạn không cho kéo ra phía ngoài trang sách
+        if (px > width) px = width;
+        if (py > height) py = height;
+        dx = px - C.x;
+        dy = py - C.y;
+
+        const dist = Math.hypot(dx, dy);
+
+        // Nếu con trỏ ở sát góc C (chưa lật)
+        if (dist < 2) {
+          frontPage.style.clipPath = "none";
+          peelLayer.style.display = "none";
+          underShadow.style.opacity = "0";
+          dragHandle.style.transform = `translate(${C.x}px, ${C.y}px)`;
+          statCorner.textContent = `(${Math.round(C.x)}, ${Math.round(C.y)})`;
+          statPointer.textContent = `(${Math.round(C.x)}, ${Math.round(C.y)})`;
+          statMidpoint.textContent = `-`;
+          statAngle.textContent = `0.0°`;
+          return;
+        }
+
+        peelLayer.style.display = "block";
+
+        // 2. Tính trung điểm M
+        const M = {
+          x: (px + C.x) / 2,
+          y: (py + C.y) / 2,
+        };
+
+        // 3. Phương trình đường nếp gấp:
+        // Vector CP = (dx, dy). Vector pháp tuyến của nếp gấp chính là CP.
+        // Điểm (x, y) thuộc nếp gấp khi: (x - M.x) * dx + (y - M.y) * dy = 0
+        //
+        // Cắt mép đáy (y = height):
+        // (x - M.x) * dx + (height - M.y) * dy = 0  =>  x = M.x - (height - M.y) * dy / dx
+        let B = { x: 0, y: height };
+        if (Math.abs(dx) > 0.001) {
+          B.x = M.x - ((height - M.y) * dy) / dx;
+        } else {
+          B.x = M.x;
+        }
+
+        // Cắt mép phải (x = width):
+        // (width - M.x) * dx + (y - M.y) * dy = 0  =>  y = M.y - (width - M.x) * dx / dy
+        let R = { x: width, y: 0 };
+        if (Math.abs(dy) > 0.001) {
+          R.y = M.y - ((width - M.x) * dx) / dy;
+        } else {
+          R.y = M.y;
+        }
+
+        // 4. Cắt góc trang trước (Front Page):
+        // Trang trước bị mất tam giác B - C - R.
+        // Polygon giữ lại: (0,0) -> (width, 0) -> (width, R.y) -> (B.x, height) -> (0, height)
+        const frontPoly = `polygon(0% 0%, 100% 0%, ${width}px ${R.y}px, ${B.x}px ${height}px, 0% 100%)`;
+        frontPage.style.clipPath = frontPoly;
+
+        // 5. Cắt và định hình góc lật (Peel Polygon):
+        // Tam giác mặt sau là P - B - R
+        const peelPoly = `polygon(${px}px ${py}px, ${B.x}px ${height}px, ${width}px ${R.y}px)`;
+        peelLayer.style.clipPath = peelPoly;
+
+        // 6. Tính góc xoay nếp gấp để đổ bóng chân thực
+        const angleRad = Math.atan2(dy, dx);
+        const angleDeg = (angleRad * 180) / Math.PI;
+
+        // Đổ bóng trên mặt nếp gấp
+        foldShadow.style.background = `linear-gradient(${angleDeg + 90}deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.05) 20%, transparent 60%)`;
+
+        // Bóng rơi xuống trang bên dưới dọc theo đường BR
+        underShadow.style.opacity = Math.min(1, dist / 150).toString();
+        underShadow.style.background = `linear-gradient(${angleDeg + 90}deg, transparent 40%, rgba(0,0,0,0.25) 50%, transparent 65%)`;
+
+        // Cập nhật vị trí Handle
+        dragHandle.style.transform = `translate(${px}px, ${py}px)`;
+
+        // Cập nhật đường vẽ SVG trực quan
+        svgLineCP.setAttribute("x1", C.x);
+        svgLineCP.setAttribute("y1", C.y);
+        svgLineCP.setAttribute("x2", px);
+        svgLineCP.setAttribute("y2", py);
+
+        svgLineFold.setAttribute("x1", B.x);
+        svgLineFold.setAttribute("y1", height);
+        svgLineFold.setAttribute("x2", width);
+        svgLineFold.setAttribute("y2", R.y);
+
+        svgPointM.setAttribute("cx", M.x);
+        svgPointM.setAttribute("cy", M.y);
+
+        svgPointB.setAttribute("cx", B.x);
+        svgPointB.setAttribute("cy", height);
+
+        svgPointR.setAttribute("cx", width);
+        svgPointR.setAttribute("cy", R.y);
+
+        // Cập nhật số liệu hiển thị
+        statCorner.textContent = `(${Math.round(C.x)}, ${Math.round(C.y)})`;
+        statPointer.textContent = `(${Math.round(px)}, ${Math.round(py)})`;
+        statMidpoint.textContent = `(${Math.round(M.x)}, ${Math.round(M.y)})`;
+        statAngle.textContent = `${Math.abs(angleDeg).toFixed(1)}°`;
+      }
+
+      function getPointerPos(e) {
+        const rect = container.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: Math.max(0, Math.min(width, clientX - rect.left)),
+          y: Math.max(0, Math.min(height, clientY - rect.top)),
+        };
+      }
+
+      function onPointerDown(e) {
+        if (animId) cancelAnimationFrame(animId);
+        isDragging = true;
+        const pos = getPointerPos(e);
+        curX = pos.x;
+        curY = pos.y;
+        computeCurl(curX, curY);
+      }
+
+      function onPointerMove(e) {
+        if (!isDragging) return;
+        const pos = getPointerPos(e);
+        curX = pos.x;
+        curY = pos.y;
+        computeCurl(curX, curY);
+      }
+
+      function onPointerUp() {
+        isDragging = false;
+      }
+
+      // Gắn sự kiện chuột & cảm ứng
+      dragHandle.addEventListener("mousedown", onPointerDown);
+      container.addEventListener("mousedown", onPointerDown);
+      window.addEventListener("mousemove", onPointerMove);
+      window.addEventListener("mouseup", onPointerUp);
+
+      dragHandle.addEventListener("touchstart", onPointerDown, {
+        passive: true,
+      });
+      container.addEventListener("touchstart", onPointerDown, {
+        passive: true,
+      });
+      window.addEventListener("touchmove", onPointerMove, { passive: true });
+      window.addEventListener("touchend", onPointerUp);
+
+      function animateTo(targetX, targetY, duration = 400) {
+        if (animId) cancelAnimationFrame(animId);
+        const startX = curX;
+        const startY = curY;
+        const startTime = performance.now();
+
+        function step(now) {
+          const elapsed = now - startTime;
+          const progress = Math.min(1, elapsed / duration);
+          // Easing easeOutCubic
+          const ease = 1 - Math.pow(1 - progress, 3);
+
+          curX = startX + (targetX - startX) * ease;
+          curY = startY + (targetY - startY) * ease;
+
+          computeCurl(curX, curY);
+
+          if (progress < 1) {
+            animId = requestAnimationFrame(step);
+          }
+        }
+        animId = requestAnimationFrame(step);
+      }
+
+      // Các nút preset
+      document.getElementById("btnReset").addEventListener("click", () => {
+        animateTo(width, height, 450);
+      });
+
+      document.getElementById("btnFlipHalf").addEventListener("click", () => {
+        animateTo(width * 0.55, height * 0.55, 500);
+      });
+
+      let autoFlipState = false;
+      document.getElementById("btnAutoFlip").addEventListener("click", () => {
+        if (autoFlipState) {
+          animateTo(width, height, 600);
+        } else {
+          animateTo(width * 0.3, height * 0.65, 700);
+        }
+        autoFlipState = !autoFlipState;
+      });
+
+      window.addEventListener("resize", () => {
+        updateDimensions();
+        computeCurl(curX, curY);
+      });
+
+      window.addEventListener("DOMContentLoaded", () => {
+        updateDimensions();
+        updateXray();
+        // Khởi động với một góc hé mở nhẹ
+        curX = width - 75;
+        curY = height - 75;
+        computeCurl(curX, curY);
+      });
+    </script>
+  </body>
+</html>
